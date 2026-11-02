@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="lt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111c1a" />
+    <title>Šviesa · Išmanusis apšvietimas</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div id="login-view" class="login-layout">
+      <section class="login-story">
+        <a class="brand" href="/">šviesa<span>●</span></a>
+        <div>
+          <p class="eyebrow">IŠMANIOJI APŠVIETIMO VALDYMO SISTEMA</p>
+          <h1>Šviesa ten,<br />kur esate jūs.</h1>
+          <p>
+            Viena erdvė. Išmanus apšvietimas.<br />Valdykite paprastai, kad ir
+            kur būtumėte.
+          </p>
+        </div>
+        <p class="story-footer">
+          NFC autorizacija <span>·</span> Judesio aptikimas
+          <span>·</span> Nuotolinis valdymas
+        </p>
+      </section>
+      <main class="login-main">
+        <form id="login-form" class="login-form">
+          <p class="eyebrow">SVEIKI SUGRĮŽĘ</p>
+          <h2>Prisijunkite</h2>
+          <p class="muted">Jūsų erdvės apšvietimas vienoje vietoje.</p>
+          <label
+            >Vartotojo vardas<input
+              name="username"
+              autocomplete="username"
+              required
+              maxlength="64"
+              placeholder="Vartotojo vardas"
+          /></label>
+          <label
+            >Slaptažodis<input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="256"
+              placeholder="Jūsų slaptažodis"
+          /></label>
+          <p id="login-error" class="error" role="alert"></p>
+          <button class="primary" type="submit">
+            Prisijungti <span>↗</span>
+          </button>
+          <p class="login-note">
+            Prieigą prie sistemos suteikia jūsų administratorius.
+          </p>
+        </form>
+      </main>
+    </div>
+    <div id="app-view" class="app-layout" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="/">šviesa<span>●</span></a>
+        <p class="nav-caption">DARBO ERDVĖ</p>
+        <nav aria-label="Pagrindinė navigacija">
+          <button data-view="overview" class="nav-item active">
+            <span>◉</span> Apžvalga
+          </button>
+          <button data-view="cards" class="nav-item admin-only">
+            <span>▤</span> NFC kortelės
+          </button>
+          <button data-view="users" class="nav-item admin-only">
+            <span>♧</span> Vartotojai
+          </button>
+          <button data-view="events" class="nav-item admin-only">
+            <span>≡</span> Įvykių istorija
+          </button>
+          <button data-view="settings" class="nav-item admin-only">
+            <span>⚙</span> Nustatymai
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="avatar" id="avatar">A</div>
+          <div>
+            <strong id="user-name"></strong><small id="user-role"></small>
+          </div>
+          <button
+            id="logout"
+            class="icon-button"
+            title="Atsijungti"
+            aria-label="Atsijungti"
+          >
+            ↪
+          </button>
+        </div>
+      </aside>
+      <main class="workspace">
+        <header class="topbar">
+          <span
+            >Jūsų darbo erdvė <span class="slash">/</span>
+            <strong id="breadcrumb">Apžvalga</strong></span
+          ><span id="clock"></span>
+        </header>
+        <div id="connection-error" class="banner" role="alert" hidden>
+          Nepavyksta pasiekti serverio. Rodomi paskutiniai gauti duomenys.
+        </div>
+        <section id="view-overview" class="view">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">VISKAS SAVO VIETOJE</p>
+              <h1>Apšvietimo apžvalga</h1>
+              <p class="muted">
+                Stebėkite erdvę ir pritaikykite šviesą savo ritmui.
+              </p>
+            </div>
+            <span class="connection-pill" id="device-status"
+              >Tikrinamas ryšys…</span
+            >
+          </div>
+          <div class="overview-grid">
+            <section class="room-panel">
+              <div class="panel-top">
+                <div>
+                  <p class="eyebrow">01 / DARBO ERDVĖ</p>
+                  <h2>Pagrindinė patalpa</h2>
+                </div>
+                <span id="mode-label" class="tag">Automatinis</span>
+              </div>
+              <div class="room-visual" id="room-visual">
+                <div class="ceiling"></div>
+                <div class="light-cone"></div>
+                <div class="lamp"><span></span></div>
+                <div class="desk"><i></i><i></i></div>
+                <div class="room-floor"></div>
+                <div class="visual-caption">
+                  <span class="live-dot"></span
+                  ><span id="actual-caption">Laukiama įrenginio</span>
+                </div>
+              </div>
+              <div class="room-readout">
+                <div>
+                  <span class="muted">Pageidaujamas ryškumas</span
+                  ><strong
+                    ><span id="desired-brightness">0</span
+                    ><small>%</small></strong
+                  >
+                </div>
+                <div class="readout-aside">
+                  <span id="stage-label">Išjungta</span
+                  ><small id="confirmation">Būsena dar nepatvirtinta</small>
+                </div>
+              </div>
+            </section>
+            <section class="control-panel panel">
+              <p class="eyebrow">JŪSŲ KONTROLĖJE</p>
+              <h2>Apšvietimo valdymas</h2>
+              <p class="muted">Pasirinkite, kaip veiks jūsų šviesa.</p>
+              <div
+                class="mode-buttons"
+                role="group"
+                aria-label="Apšvietimo režimas"
+              >
+                <button data-mode="auto">Automatinis</button
+                ><button data-mode="on">Įjungta</button
+                ><button data-mode="off">Išjungta</button>
+              </div>
+              <div class="brightness-heading">
+                <label for="brightness">Ryškumas</label
+                ><strong id="brightness-value">100%</strong>
+              </div>
+              <input
+                id="brightness"
+                type="range"
+                min="1"
+                max="100"
+                value="100"
+              />
+              <div class="range-labels">
+                <span>Švelni šviesa</span><span>Ryški šviesa</span>
+              </div>
+              <button id="apply-lighting" class="primary">
+                Taikyti pakeitimus <span>↗</span>
+              </button>
+              <p class="control-note" id="mode-help">
+                Automatiniame režime šviesą įjungia registruota NFC kortelė.
+                Judesys pratęsia veikimo laiką.
+              </p>
+              <div class="timer-line">
+                <span>Iki automatinio išjungimo</span
+                ><strong id="countdown">—</strong>
+              </div>
+            </section>
+          </div>
+          <div class="metrics">
+            <section>
+              <span class="metric-icon">◌</span>
+              <div>
+                <p>Judesio jutiklis</p>
+                <strong id="motion-status">Laukiama duomenų</strong>
+              </div>
+            </section>
+            <section>
+              <span class="metric-icon">◷</span>
+              <div>
+                <p>Paskutinis ryšys</p>
+                <strong id="last-seen">Dar neužmegztas</strong>
+              </div>
+            </section>
+            <section>
+              <span class="metric-icon">▤</span>
+              <div>
+                <p>Paskutinė autorizuota kortelė</p>
+                <strong id="last-card">Dar nenuskaityta</strong>
+              </div>
+            </section>
+          </div>
+          <section class="automation-strip">
+            <span class="automation-icon">✦</span>
+            <div>
+              <h3>Mažiau rūpesčių. Daugiau taupymo.</h3>
+              <p id="automation-summary">
+                Nesant judesio apšvietimas automatiškai pritemdomas ir
+                išjungiamas.
+              </p>
+            </div>
+            <button class="text-button admin-only" data-view="settings">
+              Keisti nustatymus ↗
+            </button>
+          </section>
+        </section>
+        <section id="view-cards" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">PRIEIGOS KONTROLĖ</p>
+              <h1>NFC kortelės</h1>
+              <p class="muted">
+                Susiekite korteles su vartotojais ir valdykite jų galiojimą.
+              </p>
+            </div>
+          </div>
+          <form id="card-form" class="panel form-grid">
+            <label
+              >Kortelės UID<input
+                name="card_id"
+                required
+                placeholder="A1B2C3D4"
+                maxlength="20"
+                pattern="([0-9a-fA-F]{8}|[0-9a-fA-F]{14}|[0-9a-fA-F]{20})" /></label
+            ><label
+              >Pavadinimas<input
+                name="label"
+                required
+                maxlength="100"
+                placeholder="Darbo kortelė" /></label
+            ><label
+              >Vartotojas<select
+                name="user_id"
+                id="card-owner"
+                required
+              ></select></label
+            ><button class="primary" type="submit">Pridėti kortelę +</button>
+          </form>
+          <div class="table-wrap panel">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kortelė</th>
+                  <th>UID</th>
+                  <th>Vartotojas</th>
+                  <th>Būsena</th>
+                  <th>Veiksmai</th>
+                </tr>
+              </thead>
+              <tbody id="cards-body"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="view-users" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">JŪSŲ KOMANDA</p>
+              <h1>Vartotojai</h1>
+              <p class="muted">Suteikite prieigą ir priskirkite atsakomybes.</p>
+            </div>
+          </div>
+          <form id="user-form" class="panel form-grid">
+            <label
+              >Vartotojo vardas<input
+                name="username"
+                required
+                pattern="[a-zA-Z0-9_.-]{3,64}"
+                maxlength="64"
+                placeholder="aironas" /></label
+            ><label
+              >Rodomas vardas<input
+                name="display_name"
+                required
+                maxlength="100"
+                placeholder="Vardas Pavardė" /></label
+            ><label
+              >Slaptažodis<input
+                name="password"
+                required
+                type="password"
+                minlength="12"
+                maxlength="256"
+                autocomplete="new-password"
+                placeholder="Bent 12 simbolių" /></label
+            ><label
+              >Rolė<select name="role">
+                <option value="user">Vartotojas</option>
+                <option value="admin">Administratorius</option>
+              </select></label
+            ><button type="submit" class="primary">Sukurti vartotoją +</button>
+          </form>
+          <div class="table-wrap panel">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vardas</th>
+                  <th>Prisijungimas</th>
+                  <th>Rolė</th>
+                  <th>Būsena</th>
+                  <th>Veiksmas</th>
+                </tr>
+              </thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="view-events" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">SISTEMOS VEIKLA</p>
+              <h1>Įvykių istorija</h1>
+              <p class="muted">
+                Autorizacijos, judesys ir apšvietimo pokyčiai vienoje laiko
+                juostoje.
+              </p>
+            </div>
+            <label class="filter-label"
+              >Įvykių tipas<select id="event-filter">
+                <option value="">Visi įvykiai</option>
+                <option value="nfc_granted">NFC: suteikta prieiga</option>
+                <option value="nfc_denied">NFC: atmesta prieiga</option>
+                <option value="motion">Judesys</option>
+                <option value="lighting_command">Valdymo komandos</option>
+                <option value="lighting_actual">Įrenginio būsena</option>
+                <option value="login_denied">Nesėkmingi prisijungimai</option>
+              </select></label
+            >
+          </div>
+          <div class="table-wrap panel">
+            <table>
+              <thead>
+                <tr>
+                  <th>Laikas</th>
+                  <th>Tipas</th>
+                  <th>Vartotojas / įrenginys</th>
+                  <th>Įvykis</th>
+                </tr>
+              </thead>
+              <tbody id="events-body"></tbody>
+            </table>
+          </div>
+          <button id="more-events" class="secondary">
+            Rodyti ankstesnius įvykius
+          </button>
+        </section>
+        <section id="view-settings" class="view" hidden>
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">AUTOMATIZAVIMAS</p>
+              <h1>Apšvietimo nustatymai</h1>
+              <p class="muted">
+                Pritaikykite automatinį veikimą patalpos poreikiams.
+              </p>
+            </div>
+          </div>
+          <form id="settings-form" class="panel settings-form">
+            <h2>Neveikimo laikmatis</h2>
+            <p class="muted">
+              Laikas skaičiuojamas nuo paskutinės autorizacijos arba aptikto
+              judesio.
+            </p>
+            <label
+              >Pritemdyti po (sekundžių)<input
+                name="dim_after_seconds"
+                type="number"
+                min="5"
+                max="86400"
+                required /></label
+            ><label
+              >Išjungti po (sekundžių)<input
+                name="off_after_seconds"
+                type="number"
+                min="10"
+                max="86400"
+                required /></label
+            ><label
+              >Pritemdyto apšvietimo ryškumas (%)<input
+                name="dim_brightness"
+                type="number"
+                min="1"
+                max="50"
+                required /></label
+            ><button type="submit" class="primary">
+              Išsaugoti nustatymus ↗
+            </button>
+            <p class="control-note">
+              Išjungimo laikas turi būti ilgesnis už pritemdymo laiką. Rankinis
+              įjungimas veikia iki kitos komandos arba NFC autorizacijos.
+            </p>
+          </form>
+        </section>
+        <footer class="app-footer">
+          <span>Šviesa · Išmanioji apšvietimo valdymo sistema</span
+          ><span>Arduino UNO / PN532 / PIR</span>
+        </footer>
+      </main>
+    </div>
+    <div id="toast" role="status" hidden></div>
+    <dialog id="confirm-dialog">
+      <h2>Pašalinti kortelę?</h2>
+      <p>Šia kortele nebebus galima įjungti apšvietimo.</p>
+      <form method="dialog">
+        <button value="cancel" class="secondary">Atšaukti</button
+        ><button value="delete" class="danger">Pašalinti</button>
+      </form>
+    </dialog>
+  </body>
+</html>

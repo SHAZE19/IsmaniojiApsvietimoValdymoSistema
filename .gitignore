@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/data/
+.env
+arduino/LightingController/config.h
+node_modules/
+test-results/
