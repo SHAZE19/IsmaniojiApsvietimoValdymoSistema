@@ -1,8 +1,6 @@
 """Single-room lighting system. Run from project root: uvicorn backend.main:app."""
-from collections import defaultdict, deque
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
-from threading import Lock
 from typing import Literal
 import hashlib
 import hmac
@@ -87,8 +85,6 @@ class Telemetry(BaseModel):
 def create_app(data_dir: Path | None = None) -> FastAPI:
     data_dir = Path(data_dir or os.environ.get("LIGHTING_DATA_DIR", ROOT / "backend" / "data"))
     db_path = data_dir / "lighting.sqlite3"
-    failures: dict[str, deque] = defaultdict(deque)
-    login_lock = Lock()
     dummy_hash = password_hash(secrets.token_urlsafe(24))
 
     @contextmanager
@@ -228,34 +224,21 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         return {k: current[k] for k in ("mode", "brightness", "desired_brightness", "remaining_seconds", "dim_after_seconds", "off_after_seconds", "dim_brightness")}
 
     @app.post("/api/auth/login")
-    def login(data: Login, request: Request, response: Response):
+    def login(data: Login, response: Response):
         now = time.time()
-        keys = ("ip:" + (request.client.host if request.client else "unknown"), "user:" + data.username.lower())
-        with login_lock:
-            for key in list(failures):
-                while failures[key] and failures[key][0] <= now - 300:
-                    failures[key].popleft()
-                if not failures[key]:
-                    del failures[key]
-            if any(len(failures[key]) >= 5 for key in keys):
-                raise HTTPException(429, "Per daug bandymų. Bandykite po 5 minučių.")
-            with db() as conn:
-                user = conn.execute("SELECT * FROM users WHERE username=?", (data.username,)).fetchone()
-                encoded = user["password_hash"] if user else dummy_hash
-                valid = hmac.compare_digest(password_hash(data.password, encoded.split(":")[0]), encoded)
-                if not user or not valid or not user["enabled"]:
-                    for key in keys:
-                        failures[key].append(now)
-                    event(conn, "login_denied", data.username[:64], "Nesėkmingas prisijungimas")
-                else:
-                    token = secrets.token_urlsafe(32)
-                    conn.execute("DELETE FROM sessions WHERE expires<=?", (now,))
-                    conn.execute("INSERT INTO sessions VALUES(?,?,?)", (hashlib.sha256(token.encode()).hexdigest(), user["id"], now + SESSION_SECONDS))
-                    event(conn, "login", user["username"], "Prisijungta prie WEB sąsajos")
-                    for key in keys:
-                        failures.pop(key, None)
+        with db() as conn:
+            user = conn.execute("SELECT * FROM users WHERE username=?", (data.username,)).fetchone()
+            encoded = user["password_hash"] if user else dummy_hash
+            valid = hmac.compare_digest(password_hash(data.password, encoded.split(":")[0]), encoded)
             if not user or not valid or not user["enabled"]:
-                raise HTTPException(401, "Neteisingi prisijungimo duomenys")
+                event(conn, "login_denied", data.username[:64], "Nesėkmingas prisijungimas")
+            else:
+                token = secrets.token_urlsafe(32)
+                conn.execute("DELETE FROM sessions WHERE expires<=?", (now,))
+                conn.execute("INSERT INTO sessions VALUES(?,?,?)", (hashlib.sha256(token.encode()).hexdigest(), user["id"], now + SESSION_SECONDS))
+                event(conn, "login", user["username"], "Prisijungta prie WEB sąsajos")
+        if not user or not valid or not user["enabled"]:
+            raise HTTPException(401, "Neteisingi prisijungimo duomenys")
         response.set_cookie("lighting_session", token, httponly=True, samesite="strict",
                             secure=os.environ.get("LIGHTING_COOKIE_SECURE", "0") == "1", max_age=SESSION_SECONDS)
         return {k: user[k] for k in ("id", "username", "display_name", "role")}

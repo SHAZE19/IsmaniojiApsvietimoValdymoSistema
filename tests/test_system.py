@@ -59,13 +59,14 @@ def test_auth_session_logout_and_csrf(system):
     assert client.get("/api/auth/me").status_code == 401
 
 
-def test_login_rate_limit_and_audit(system):
+def test_repeated_failed_logins_do_not_block_and_are_audited(system):
     client, path = system
-    for _ in range(5):
+    for _ in range(8):
         assert login(client, password="wrong").status_code == 401
-    assert login(client).status_code == 429
+    assert login(client).status_code == 200
+    assert client.get("/api/auth/me").status_code == 200
     with sqlite3.connect(path / "lighting.sqlite3") as conn:
-        assert conn.execute("SELECT COUNT(*) FROM events WHERE kind='login_denied'").fetchone()[0] == 5
+        assert conn.execute("SELECT COUNT(*) FROM events WHERE kind='login_denied'").fetchone()[0] == 8
 
 
 def test_device_requires_separate_secret(system):

@@ -101,7 +101,7 @@ Schema: `/openapi.json`. Arduino gauna mažą JSON atsakymą su režimu, ryškum
 
 ## Duomenys ir saugumas
 
-SQLite failas `backend/data/lighting.sqlite3` saugo paskyras, maišos reikšmes, korteles, sesijas, nustatymus ir įvykius. Slaptažodžiams naudojamas scrypt su atskira druska, sesijų tokenų bazėje saugomos SHA-256 maišos reikšmės. Po 5 nesėkmingų prisijungimų per 5 min. taikomas ribojimas pagal IP ir vartotojo vardą. Ribojimas laikomas vieno serverio proceso atmintyje; paleidus iš naujo jis išsivalo.
+SQLite failas `backend/data/lighting.sqlite3` saugo paskyras, maišos reikšmes, korteles, sesijas, nustatymus ir įvykius. Slaptažodžiams naudojamas scrypt su atskira druska, sesijų tokenų bazėje saugomos SHA-256 maišos reikšmės. Nesėkmingi prisijungimai registruojami įvykių istorijoje. Laukimo laikotarpis po neteisingų slaptažodžių netaikomas: kitą bandymą galima atlikti iš karto.
 
 `backend/data`, `.venv`, privačios Arduino konfigūracijos ir laikini failai ignoruojami Git. Atsarginei kopijai sustabdykite serverį ir nukopijuokite **visą** `backend/data` aplanką. Trinant šį aplanką būtų prarasti duomenys ir sugeneruotas kitas įrenginio raktas, todėl įprastam darbui jo netrinkite.
 
@@ -133,7 +133,7 @@ npm run test:browser
 
 Naršyklės testas paleidžia atskirą serverį laisvame porte su laikina baze. Tikrina prisijungimą, valdymą, vartotojus, korteles, HTML įvesties saugų atvaizdavimą, teises ir mobilųjį vaizdą. Jei Chrome yra kitoje vietoje, nurodykite jo kelią per `BROWSER_PATH`. Node.js reikalingas tik šiems testams, serveriui ir sąsajai jo nereikia. Pilnas patikrintos Python aplinkos versijų sąrašas yra `backend/requirements-lock.txt`.
 
-Testai naudoja laikinas bazes ir nekeičia jūsų kortelių. Tikrinamos rolės, CSRF apsauga, sesijos, įrenginio raktas, prisijungimo ribojimas, NFC, judesys, pritemdymas, išjungimas, blokavimas, duomenų išlikimas ir įvykių puslapiai. UNO eskizas patikrintas kompiliuojant `arduino:avr:uno`, Arduino AVR Boards 1.8.8. Fizinį komponentų veikimą reikia patikrinti su prijungta įranga.
+Testai naudoja laikinas bazes ir nekeičia jūsų kortelių. Tikrinamos rolės, CSRF apsauga, sesijos, įrenginio raktas, pakartotiniai prisijungimo bandymai be blokavimo, NFC, judesys, pritemdymas, išjungimas, blokavimas, duomenų išlikimas ir įvykių puslapiai. UNO eskizas patikrintas kompiliuojant `arduino:avr:uno`, Arduino AVR Boards 1.8.8. Fizinį komponentų veikimą reikia patikrinti su prijungta įranga.
 
 ## Struktūra
 
